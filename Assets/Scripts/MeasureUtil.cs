@@ -2,15 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MeasureUtil : MonoBehaviour {
+public class MeasureUtil : MonoBehaviour
+{
 
-	// Use this for initialization
-	void Start () {
-		
-	}
+	public Vector3 sizeOfObject;
+	public Vector3 center;
 	
-	// Update is called once per frame
-	void Update () {
-		
+	private void Start()
+	{
+		MeshRenderer renderer = gameObject.GetComponent < MeshRenderer >();
+		sizeOfObject = renderer.bounds.extents;
+		center = renderer.bounds.center;
 	}
+
 }
