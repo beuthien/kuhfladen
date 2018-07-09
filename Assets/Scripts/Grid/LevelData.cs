@@ -4,12 +4,7 @@ using UnityEngine;
 
 public class LevelData : ScriptableObject {
 
-    public Dictionary<HexCoordinate, Tile> tiles = new Dictionary<HexCoordinate, Tile>();
-
-    public bool Contains(HexCoordinate hexCoordinate)
-    {
-        return tiles.ContainsKey(hexCoordinate);
-    }
-    
-    
+    public List<HexCoordinate> coordinates;
+    public List<Tile> tiles;
+    public SceneLayout sceneLayout;
 }

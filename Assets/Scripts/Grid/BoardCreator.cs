@@ -6,16 +6,17 @@ using UnityEditor;
 
 public class BoardCreator : MonoBehaviour {
 
-	public GameObject[] tilePrefab;
+	public GameObject[] tilePrefabs;
 	[SerializeField] GameObject tileSelectionIndicatorPrefab;
 	[SerializeField] int width = 10;
-	[SerializeField] int depth = 10;
 	[SerializeField] int height = 8;
+	[SerializeField] string levelName = "StartingZone";
 	public HexCoordinate pos;
-	private SceneLayout sceneLayout = new SceneLayout(2.88675f);
+	public SceneLayout sceneLayout = new SceneLayout(2.88675f);
 	// [SerializeField] LevelData levelData;
-	public Dictionary<HexCoordinate, GameObject> tiles = new Dictionary<HexCoordinate, GameObject>();
-	//public Board board;
+	//public Dictionary<HexCoordinate, GameObject> tiles = new Dictionary<HexCoordinate, GameObject>();
+	[SerializeField] Board board = new Board();
+	[SerializeField] LevelData levelData;
 	
 	Transform marker
 	{
@@ -33,7 +34,7 @@ public class BoardCreator : MonoBehaviour {
 	
 	public void UpdateMarker ()
 	{
-		GameObject tile = tiles.ContainsKey(pos) ? tiles[pos] : null;
+		GameObject tile = board.Contains(pos) ? board.GetTileAtCoordinate(pos) : null;
 		marker.localPosition = tile != null ? tile.GetComponent<Tile>().center : pos.ToScreenPosition(sceneLayout);
 	}
 
@@ -44,8 +45,7 @@ public class BoardCreator : MonoBehaviour {
 			for (int q = 0; q < width; q++)
 			{
 				HexCoordinate hexCoordinate = new HexCoordinate(r, q);
-				Debug.Log(hexCoordinate.ToString());
-				GetOrCreate(hexCoordinate, 0);
+				ChangeOrCreate(hexCoordinate, 0);
 			}
 		}
 	}
@@ -54,26 +54,31 @@ public class BoardCreator : MonoBehaviour {
 	{
 		for (int i = transform.childCount - 1; i >= 0; --i)
 			DestroyImmediate(transform.GetChild(i).gameObject);
-		tiles.Clear();
+		board.Empty();
 	}
 	
-	GameObject Create(Vector3 position, int selectedIndex)
+	GameObject Create(HexCoordinate hexCoordinate, int selectedIndex)
 	{
-		GameObject instance = Instantiate(tilePrefab[selectedIndex], position, Quaternion.identity);
+		Vector3 position = sceneLayout.GetScreenPositionFromHexCoordinate(hexCoordinate);
+		GameObject instance = Instantiate(tilePrefabs[selectedIndex], position, Quaternion.identity);
+		instance.GetComponent<Tile>().prefabIndex = selectedIndex;
+		instance.GetComponent<Tile>().hexPosition = hexCoordinate;
+		instance.GetComponent<Tile>().center = position;
 		instance.transform.parent = transform;
 		return instance;
 	}
 	
-	public GameObject GetOrCreate (HexCoordinate hexCoordinate, int selectedIndex)
+	public GameObject ChangeOrCreate (HexCoordinate hexCoordinate, int selectedIndex)
 	{
-		GameObject tile = Create(sceneLayout.GetScreenPositionFromHexCoordinate(hexCoordinate), selectedIndex);
-		if (tiles.ContainsKey(hexCoordinate))
+		GameObject tile = Create(hexCoordinate, selectedIndex);
+		if (board.Contains(hexCoordinate))
 		{
-			GameObject toDelete = tiles[hexCoordinate];
-			tiles.Remove(hexCoordinate);
+			GameObject toDelete = board.GetTileAtCoordinate(hexCoordinate);
+			board.RemoveTileAtCoordinate(hexCoordinate);
 			DestroyImmediate(toDelete);			
 		}
-		tiles.Add(hexCoordinate, tile);
+
+		board.AddTileAtCoordinate(tile, hexCoordinate);
 		return tile;
 	}
 
@@ -87,14 +92,20 @@ public class BoardCreator : MonoBehaviour {
 		string filePath = Application.dataPath + "/Resources/Levels";
 		if (!Directory.Exists(filePath))
 			CreateSaveDirectory ();
-		
-		LevelData board = ScriptableObject.CreateInstance<LevelData>();
-		board.tiles = new List<Vector3>( tiles.Count );
-		foreach (Tile t in tiles.Values)
-			board.tiles.Add( new Vector3(t.pos.x, t.height, t.pos.y) );
-		
-		string fileName = string.Format("Assets/Resources/Levels/{1}.asset", filePath, name);
-		AssetDatabase.CreateAsset(board, fileName);
+
+
+		LevelData dataToSave = ScriptableObject.CreateInstance<LevelData>();
+		dataToSave.tiles = new List<Tile>();
+		dataToSave.coordinates = new List<HexCoordinate>();
+		dataToSave.sceneLayout = sceneLayout;
+		foreach (var element in board.tiles)
+		{
+			dataToSave.tiles.Add(element.Value.GetComponent<Tile>());
+			dataToSave.coordinates.Add(element.Key);
+		}
+		string fileName = string.Format("Assets/Resources/Levels/{1}.asset", filePath, levelName);
+		Debug.Log("Save to file " + fileName);
+		AssetDatabase.CreateAsset(dataToSave, fileName);
 	}
 
 	public void Load ()
@@ -102,12 +113,17 @@ public class BoardCreator : MonoBehaviour {
 		Clear();
 		if (levelData == null)
 			return;
-		
-		foreach (Vector3 v in levelData.tiles)
+		Debug.Log("Load level" + levelData.ToString());	
+		AssetDatabase.Refresh();
+		sceneLayout = levelData.sceneLayout;
+		for (int i = 0; i < levelData.coordinates.Count; i++)
 		{
-			Tile t = Create();
-			t.Load(v);
-			tiles.Add(t.pos, t);
+			int index = levelData.tiles[i].prefabIndex;
+			HexCoordinate hexCoordinate = levelData.coordinates[i];
+			Vector3 position = sceneLayout.GetScreenPositionFromHexCoordinate(hexCoordinate);
+			GameObject instance = Instantiate(tilePrefabs[index], position, Quaternion.identity);
+			instance.transform.parent = transform;
+			board.AddTileAtCoordinate(instance, levelData.coordinates[i]);
 		}
 	}
 	

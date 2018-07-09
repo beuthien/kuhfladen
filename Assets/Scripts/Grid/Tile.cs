@@ -7,6 +7,7 @@ public class Tile : MonoBehaviour
 	public HexCoordinate hexPosition;
 	public SceneLayout sceneLayout;
 	public Vector3 center;
+	public int prefabIndex;
 	
 	// Use this for initialization
 	void Start () {

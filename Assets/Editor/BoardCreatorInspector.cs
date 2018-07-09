@@ -15,17 +15,16 @@ public class BoardCreatorInspector : Editor
 	}
 	
 	public int selectedIndex = 0;
-	public SceneLayout sceneLayout;
 	bool enableEditMode = false;
 
 	public override void OnInspectorGUI ()
 	{
 		DrawDefaultInspector();
 		
-		string[] prefabNames = new string[current.tilePrefab.Length];
-		for (int i = 0; i < current.tilePrefab.Length; i++)
+		string[] prefabNames = new string[current.tilePrefabs.Length];
+		for (int i = 0; i < current.tilePrefabs.Length; i++)
 		{
-			prefabNames[i] = current.tilePrefab[i].name;
+			prefabNames[i] = current.tilePrefabs[i].name;
 		}
 
 		enableEditMode = GUILayout.Toggle(enableEditMode, "Editing on");
@@ -37,6 +36,16 @@ public class BoardCreatorInspector : Editor
 		if (GUILayout.Button("Default"))
 		{
 			current.GetDefaultMap();
+		}
+
+		if (GUILayout.Button("Save"))
+		{
+			current.Save();
+		}
+
+		if (GUILayout.Button("Load"))
+		{
+			current.Load();
 		}
 		
 		if (GUI.changed)
@@ -52,7 +61,6 @@ public class BoardCreatorInspector : Editor
 			
 			Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
 			Vector3 point = ComputeYZeroCrossing(ray);
-			Debug.Log("Handle Event: Position tile at " + point);
 			Spawn(point);
 		}
 
@@ -61,7 +69,7 @@ public class BoardCreatorInspector : Editor
 			Debug.Log("MouseDrag");
 			Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
 			Vector3 point = ComputeYZeroCrossing(ray);			
-			HexCoordinate hexCoordinate = sceneLayout.GetHexCoordinateFromScenePosition(point);
+			HexCoordinate hexCoordinate = current.sceneLayout.GetHexCoordinateFromScenePosition(point);
 			current.pos = hexCoordinate;
 			current.UpdateMarker();
 		}
@@ -77,9 +85,8 @@ public class BoardCreatorInspector : Editor
 	void Spawn(Vector3 screenTilePosition)
 	{
 		Debug.Log("Spawn: Position tile at " + screenTilePosition);
-		sceneLayout = new SceneLayout(current.tilePrefab[0]);
-		HexCoordinate hexCoordinate = sceneLayout.GetHexCoordinateFromScenePosition(screenTilePosition);
-		Vector3 adjustedTilePosition = sceneLayout.GetScreenPositionFromHexCoordinate(hexCoordinate);
-		current.GetOrCreate(hexCoordinate, selectedIndex);
+		HexCoordinate hexCoordinate = current.sceneLayout.GetHexCoordinateFromScenePosition(screenTilePosition);
+		Vector3 adjustedTilePosition = current.sceneLayout.GetScreenPositionFromHexCoordinate(hexCoordinate);
+		current.ChangeOrCreate(hexCoordinate, selectedIndex);
 	}
 }
