@@ -11,7 +11,7 @@ public class MeasureUtil : MonoBehaviour
 	private void Start()
 	{
 		MeshRenderer renderer = gameObject.GetComponent < MeshRenderer >();
-		sizeOfObject = renderer.bounds.extents;
+		sizeOfObject = renderer.bounds.size;
 		center = renderer.bounds.center;
 	}
 
